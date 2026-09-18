@@ -1,0 +1,92 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime @default(now())
+}
+
+model SiteSettings {
+  id              String   @id @default("main")
+  siteName        String   @default("La tua struttura")
+  siteTagline     String?  @default("Guida Ospiti")
+  logoUrl         String?
+  heroLocation    String?
+  heroTitle       String   @default("Benvenuti")
+  heroSubtitle    String   @default("")
+  heroImageUrl    String?
+  contactPhone    String?
+  contactEmail    String?
+  contactAddress  String?
+  websiteUrl      String?
+  mapUrl          String?
+  instagramUrl    String?
+  facebookUrl     String?
+  whatsappNumber  String?
+  footerNote      String?
+  updatedAt       DateTime @updatedAt
+}
+
+model GalleryImage {
+  id        String   @id @default(cuid())
+  url       String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String?
+  icon        String
+  imageFit    String   @default("contain")
+  order       Int      @default(0)
+  updatedAt   DateTime @updatedAt
+  items       Item[]
+}
+
+model Item {
+  id           String   @id @default(cuid())
+  categoryId   String
+  category     Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  title        String
+  description  String?
+  imageUrl     String?
+  pdfUrl       String?
+  address      String?
+  phone        String?
+  website      String?
+  mapEmbedUrl  String?
+  order        Int      @default(0)
+  published    Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([categoryId])
+}
+
+enum AssistanceStatus {
+  NEW
+  HANDLED
+}
+
+model AssistanceRequest {
+  id        String            @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  message   String
+  status    AssistanceStatus  @default(NEW)
+  createdAt DateTime          @default(now())
+}

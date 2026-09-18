@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: app_bc_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: app_bc
+      POSTGRES_PASSWORD: app_bc
+      POSTGRES_DB: app_bc
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app_bc -d app_bc"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:
