@@ -1,92 +1,115 @@
-# app_bc
+# Residence Manager
 
-Guida digitale per una struttura ricettiva: homepage di benvenuto con sezioni (appartamenti, spiagge, ristoranti, cantine e vini, sentieri, escursioni, servizi e supermercati, numeri utili, mappe, assistenza), contenuti gestibili da un pannello di amministrazione.
+A digital guest guide for a hospitality property: a welcome homepage with sections for apartments, beaches, restaurants, wineries, trails, excursions, local services, useful numbers, maps, and guest support — all content editable from an admin panel, with no code changes required.
 
-**Stack**: Next.js (App Router, TypeScript) · PostgreSQL · Prisma ORM · Tailwind CSS · Docker
+**Stack**: Next.js (App Router, TypeScript) · PostgreSQL · Prisma ORM · Tailwind CSS · Docker · Vitest
 
-## Requisiti
+## About this project
+
+I built this as a full-stack personal project to design and ship a complete web application end to end: data model, authentication, an admin CMS, file uploads, and a public-facing site — deployed and used in a real setting rather than left as a course exercise.
+
+I used AI-assisted development (Claude Code) as part of my workflow, which let me move faster on boilerplate and scaffolding. Every architectural decision, and the security review that followed, was mine: I identified and fixed a weak authorization check in the route middleware (it only checked for the *presence* of a session cookie, not its validity) and a timing side-channel in the login flow (the password comparison was skipped entirely when the email didn't exist, making "wrong password" and "unknown email" distinguishable by response time). Both fixes are covered by an automated test suite (see [Testing](#testing) below).
+
+## Requirements
 
 - Node.js (LTS)
-- Docker Desktop (per PostgreSQL in locale)
+- Docker Desktop (for PostgreSQL locally)
 
-## Setup ambiente locale
+## Local setup
 
-1. Installa le dipendenze:
+1. Install dependencies:
 
    ```bash
    npm install
    ```
 
-2. Copia `.env.example` in `.env` e personalizza i valori (in particolare `ADMIN_EMAIL`/`ADMIN_PASSWORD`, usati solo per creare il primo account amministratore).
+2. Copy `.env.example` to `.env` and fill in the values (in particular `ADMIN_EMAIL`/`ADMIN_PASSWORD`, used only to create the first admin account).
 
-3. Avvia il database PostgreSQL (Docker):
+3. Start PostgreSQL (Docker):
 
    ```bash
    npm run db:up
    ```
 
-4. Applica le migration al database (crea le tabelle a partire da `prisma/schema.prisma`):
+4. Apply database migrations (creates the tables from `prisma/schema.prisma`):
 
    ```bash
    npm run prisma:migrate
    ```
 
-5. Popola il database con le 10 sezioni, le impostazioni di base del sito e l'account amministratore:
+5. Seed the database with the 10 sections, base site settings, and the admin account:
 
    ```bash
    npm run db:seed
    ```
 
-6. Avvia il server di sviluppo:
+6. Start the dev server:
 
    ```bash
    npm run dev
    ```
 
-   Apri [http://localhost:3000](http://localhost:3000) per il sito pubblico e [http://localhost:3000/admin/login](http://localhost:3000/admin/login) per il pannello di amministrazione (credenziali da `ADMIN_EMAIL`/`ADMIN_PASSWORD`).
+   Open [http://localhost:3000](http://localhost:3000) for the public site and [http://localhost:3000/admin/login](http://localhost:3000/admin/login) for the admin panel (credentials from `ADMIN_EMAIL`/`ADMIN_PASSWORD`).
 
-## Script disponibili
+## Testing
 
-| Comando                  | Descrizione                                             |
-| ------------------------- | -------------------------------------------------------- |
-| `npm run dev`              | Avvia il server di sviluppo Next.js                      |
-| `npm run build`            | Build di produzione                                       |
-| `npm run start`            | Avvia la build di produzione                              |
-| `npm run lint`              | Esegue ESLint                                             |
-| `npm run db:up`            | Avvia PostgreSQL via Docker Compose                       |
-| `npm run db:down`          | Ferma il container PostgreSQL                             |
-| `npm run prisma:generate`  | Rigenera il Prisma Client dallo schema                    |
-| `npm run prisma:migrate`   | Crea/applica una migration Prisma in sviluppo             |
-| `npm run prisma:studio`    | Apre Prisma Studio (GUI per esplorare il database)        |
-| `npm run db:seed`          | Crea le 10 sezioni, le impostazioni sito e l'account admin |
+The project has an automated test suite (Vitest) covering authentication, session handling, and file upload validation — 15 tests across 4 files:
 
-## Struttura del progetto
-
-```
-prisma/schema.prisma          # Modelli del database
-prisma/seed.ts                 # Dati iniziali (sezioni, sito, admin)
-src/app/                       # Pagine pubbliche (App Router)
-src/app/[categoria]/           # Pagina dinamica di ogni sezione
-src/app/assistenza/            # Modulo di contatto
-src/app/admin/login/           # Login amministratore (pubblico)
-src/app/admin/(protected)/     # Pannello admin (richiede login)
-src/app/actions/               # Server Actions (mutazioni dati)
-src/lib/                       # Prisma client, sessione, password, upload
-src/components/                # Componenti condivisi (UI)
-src/proxy.ts                   # Protezione delle rotte /admin
-public/uploads/                # Foto caricate dal pannello admin (non versionate)
-docker-compose.yml             # Servizio PostgreSQL locale
-.env                           # Variabili d'ambiente (non versionato)
+```bash
+npm run test
 ```
 
-## Variabili d'ambiente
+| File | What it covers |
+| --- | --- |
+| `tests/password.test.ts` | Password hashing/verification (bcrypt) |
+| `tests/session.test.ts` | JWT session creation and verification, including tampered/invalid tokens |
+| `tests/auth.test.ts` | Login flow: invalid input, unknown email, wrong password, successful login — including a regression test for the timing side-channel fix |
+| `tests/upload.test.ts` | File upload validation: rejected MIME types, oversized files, valid uploads |
 
-Vedi `.env.example`. Copia `.env.example` in `.env` e personalizza:
+## Available scripts
 
-- `DATABASE_URL` — connessione a PostgreSQL
-- `SESSION_SECRET` — chiave per firmare la sessione admin (stringa casuale)
-- `ADMIN_EMAIL` / `ADMIN_PASSWORD` — credenziali usate dallo script di seed per creare il primo account amministratore
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start the Next.js dev server |
+| `npm run build` | Production build |
+| `npm run start` | Run the production build |
+| `npm run lint` | Run ESLint |
+| `npm run test` | Run the test suite (Vitest) |
+| `npm run db:up` | Start PostgreSQL via Docker Compose |
+| `npm run db:down` | Stop the PostgreSQL container |
+| `npm run prisma:generate` | Regenerate the Prisma Client from the schema |
+| `npm run prisma:migrate` | Create/apply a Prisma migration in development |
+| `npm run prisma:studio` | Open Prisma Studio (GUI for browsing the database) |
+| `npm run db:seed` | Create the 10 sections, site settings, and admin account |
 
-## Gestione contenuti
+## Project structure
 
-Tutti i contenuti (testo di benvenuto, contatti, foto ed elementi di ogni sezione) si modificano da `/admin` dopo aver effettuato il login — non serve toccare il codice. Le foto caricate vengono salvate in `public/uploads/`.
+```
+prisma/schema.prisma          # Database models
+prisma/seed.ts                 # Seed data (sections, site settings, admin)
+src/app/                       # Public pages (App Router)
+src/app/[categoria]/           # Dynamic page for each section
+src/app/assistenza/            # Contact/support form
+src/app/admin/login/           # Admin login (public)
+src/app/admin/(protected)/     # Admin panel (requires login)
+src/app/actions/               # Server Actions (data mutations)
+src/lib/                       # Prisma client, session, password, upload helpers
+src/components/                # Shared UI components
+src/proxy.ts                   # Route protection for /admin
+tests/                         # Vitest test suite
+public/uploads/                # Photos uploaded from the admin panel (not versioned)
+docker-compose.yml             # Local PostgreSQL service
+.env                           # Environment variables (not versioned)
+```
+
+## Environment variables
+
+See `.env.example`. Copy it to `.env` and set:
+
+- `DATABASE_URL` — PostgreSQL connection string
+- `SESSION_SECRET` — key used to sign the admin session (random string)
+- `ADMIN_EMAIL` / `ADMIN_PASSWORD` — credentials used by the seed script to create the first admin account
+
+## Content management
+
+All content (welcome text, contact details, photos, and items in each section) is managed from `/admin` after logging in — no code changes required. Uploaded photos are stored in `public/uploads/` (or Vercel Blob storage in production).
